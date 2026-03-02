@@ -1,0 +1,1283 @@
+{% extends "base.html" %}
+
+{% block title %}Content Planner - {{ campaign.book_title }}{% endblock %}
+
+{% block hero_title %}Content Planner{% endblock %}
+{% block hero_sub %}{{ campaign.book_title }} • {{ posts|length }} posts{% endblock %}
+
+{% block content %}
+<!-- Navigation Tabs -->
+<div style="margin-bottom: 24px;">
+  <sl-tab-group id="mainTabGroup">
+    <sl-tab slot="nav" panel="preview">
+      <sl-icon name="table" slot="prefix"></sl-icon>
+      Preview & Export
+    </sl-tab>
+    <sl-tab slot="nav" panel="planner" active>
+      <sl-icon name="calendar3" slot="prefix"></sl-icon>
+      Content Planner
+    </sl-tab>
+    <sl-tab slot="nav" panel="instagram-grid">
+      <sl-icon name="grid-3x3" slot="prefix"></sl-icon>
+      Instagram Grid
+    </sl-tab>
+
+    <sl-tab-panel name="planner" active>
+      <p style="color: var(--brand-text-secondary); margin-bottom: 20px;">
+        Campaign: <strong>{{ campaign.name }}</strong>
+      </p>
+    </sl-tab-panel>
+
+    <sl-tab-panel name="instagram-grid">
+      <div class="instagram-grid-container">
+        <div class="instagram-header">
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+            <div class="profile-circle" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold;">
+              {{ campaign.book_title[0].upper() if campaign.book_title else 'A' }}
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 20px; font-weight: 600;">{{ campaign.book_title }}</h3>
+              <p style="margin: 4px 0 0 0; color: var(--brand-text-secondary);">{{ posts|length }} posts</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="instagram-grid">
+          {% for post in posts[:9] %}
+          <div class="instagram-tile" data-post-id="{{ post.id }}" onclick="editPost({{ post.id }})">
+            {% if post.image_url %}
+            <img src="{{ post.image_url }}" alt="{{ post.hook }}" class="grid-image">
+            {% else %}
+            <div class="grid-placeholder">
+              <sl-icon name="image" style="font-size: 48px; color: #ccc;"></sl-icon>
+            </div>
+            {% endif %}
+            <div class="grid-overlay">
+              <div class="overlay-content">
+                <p class="overlay-hook">{{ post.hook }}</p>
+                <p class="overlay-date">{{ post.post_date.strftime('%b %d') if post.post_date else 'Unscheduled' }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if posts|length > 9 %}
+        <p style="text-align: center; margin-top: 24px; color: var(--brand-text-secondary);">
+          Showing first 9 posts. <a href="#" style="color: var(--brand-primary);">View all {{ posts|length }} posts</a>
+        </p>
+        {% endif %}
+      </div>
+    </sl-tab-panel>
+  </sl-tab-group>
+</div>
+
+<script>
+// Handle tab navigation
+document.querySelector('sl-tab[panel="preview"]').addEventListener('click', () => {
+  window.location.href = '/campaign/{{ campaign.id }}/preview';
+});
+</script>
+
+<style>
+  .planner-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .month-nav button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 8px;
+    color: #666;
+  }
+  
+  .month-nav button:hover {
+    color: #333;
+  }
+  
+  .current-month {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .calendar-grid {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    margin-bottom: 1px;
+    background: #e0e0e0;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+  }
+  
+  .weekday {
+    background: #f8f9fa;
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #666;
+    text-transform: uppercase;
+  }
+  
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e0e0e0;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  
+  .day-cell {
+    background: white;
+    min-height: 120px;
+    padding: 8px;
+    position: relative;
+  }
+  
+  .day-cell.other-month {
+    background: #fafafa;
+    color: #ccc;
+  }
+  
+  .day-number {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 8px;
+  }
+  
+  .post-card-mini {
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 6px;
+    margin-bottom: 6px;
+    cursor: move;
+    transition: all 0.2s;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .post-card-mini:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-color: #667eea;
+  }
+  
+  .post-card-mini.dragging {
+    opacity: 0.5;
+    transform: rotate(3deg);
+  }
+  
+  .day-cell.drag-over {
+    background: #e8efff;
+    border: 2px dashed #667eea;
+  }
+  
+  .post-time {
+    font-size: 11px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 4px;
+  }
+  
+  .post-thumbnail-mini {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    object-fit: cover;
+    background: #e0e0e0;
+  }
+  
+  .post-hook-mini {
+    font-size: 11px;
+    color: #333;
+    margin-top: 4px;
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .instagram-badge {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+    margin-top: 4px;
+  }
+  
+  .actions-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  
+  .btn-connect {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-connect:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  
+  .btn-secondary {
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .btn-secondary:hover {
+    border-color: #999;
+    color: #333;
+  }
+  
+  .btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+  }
+  
+  .workflow-nav {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    align-items: center;
+  }
+  
+  .workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .workflow-step:hover {
+    background: #f5f5f5;
+    color: #333;
+  }
+  
+  .workflow-step.active {
+    background: #667eea;
+    color: white;
+  }
+  
+  .workflow-step .step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .workflow-step.active .step-number {
+    background: white;
+    color: #667eea;
+  }
+  
+  .workflow-arrow {
+    color: #ccc;
+    font-size: 18px;
+  }
+  
+  .view-tabs {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .view-tab {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  
+  .view-tab:hover {
+    border-color: #667eea;
+    color: #667eea;
+  }
+  
+  .view-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+  }
+  
+  .instagram-grid-view {
+    display: none;
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .instagram-grid-view.active {
+    display: block;
+  }
+  
+  .grid-preview-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .grid-preview-header h3 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 8px;
+  }
+  
+  .grid-preview-header p {
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .instagram-grid-container {
+    max-width: 935px;
+    margin: 0 auto;
+  }
+  
+  .instagram-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  
+  .grid-post {
+    aspect-ratio: 1;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  
+  .grid-post img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  
+  .grid-post:hover img {
+    transform: scale(1.05);
+  }
+  
+  .grid-post-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: white;
+    font-size: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .grid-post:hover .grid-post-overlay {
+    opacity: 1;
+  }
+
+  /* Instagram Grid View Styles */
+  .instagram-grid-container {
+    max-width: 935px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .instagram-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 24px;
+  }
+
+  .instagram-tile {
+    position: relative;
+    aspect-ratio: 1;
+    cursor: pointer;
+    overflow: hidden;
+    background: #f0f0f0;
+  }
+
+  .grid-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+  }
+
+  .instagram-tile:hover .grid-image {
+    transform: scale(1.03);
+  }
+
+  .grid-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+  }
+
+  .grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .instagram-tile:hover .grid-overlay {
+    opacity: 1;
+  }
+
+  .overlay-content {
+    color: white;
+    text-align: center;
+  }
+
+  .overlay-hook {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .overlay-date {
+    font-size: 12px;
+    margin: 0;
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    .instagram-grid {
+      gap: 2px;
+    }
+
+    .overlay-hook {
+      font-size: 12px;
+    }
+  }
+</style>
+
+<div class="planner-container">
+  <div class="workflow-nav">
+    <div class="workflow-step" onclick="window.location.href='/'">
+      <span class="step-number">1</span>
+      <span>Form</span>
+    </div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step" onclick="goToPreview()">
+      <span class="step-number">2</span>
+      <span>Preview</span>
+    </div>
+    <div class="workflow-arrow">→</div>
+    <div class="workflow-step active">
+      <span class="step-number">3</span>
+      <span>Planner</span>
+    </div>
+  </div>
+  
+  <div class="calendar-header">
+    <div class="view-tabs">
+      <button class="view-tab active" id="calendarTab" onclick="switchView('calendar')">
+        <i class="fas fa-calendar"></i> Calendar
+      </button>
+      <button class="view-tab" id="gridTab" onclick="switchView('grid')">
+        <i class="fab fa-instagram"></i> Instagram Preview
+      </button>
+    </div>
+    
+    <div class="month-nav" id="monthNav">
+      <button onclick="prevMonth()">←</button>
+      <span class="current-month" id="currentMonth">{{ campaign.start_date.strftime('%B %Y') }}</span>
+      <button onclick="nextMonth()">→</button>
+    </div>
+    
+    <div class="actions-bar">
+      {% if campaign.instagram_connected %}
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+        <i class="fab fa-instagram"></i>
+        <div>
+          <div style="font-size: 11px; opacity: 0.9;">Connected</div>
+          <div style="font-weight: 600;">@{{ campaign.instagram_username }}</div>
+        </div>
+        <button onclick="disconnectInstagram()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-left: 8px;">
+          Disconnect
+        </button>
+      </div>
+      {% else %}
+      <button class="btn-connect" onclick="connectInstagram()">
+        <i class="fab fa-instagram"></i> Connect Instagram
+      </button>
+      {% endif %}
+      <button class="btn-danger" onclick="deleteAllPosts()" title="Delete all posts from database (for testing)">
+        <i class="fas fa-trash"></i> Delete All Posts
+      </button>
+      <button class="btn-secondary" onclick="window.location.href='/'">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+    </div>
+  </div>
+  
+  <div class="calendar-grid" id="calendarView">
+    <div class="weekdays">
+      <div class="weekday">Sun</div>
+      <div class="weekday">Mon</div>
+      <div class="weekday">Tue</div>
+      <div class="weekday">Wed</div>
+      <div class="weekday">Thu</div>
+      <div class="weekday">Fri</div>
+      <div class="weekday">Sat</div>
+    </div>
+    
+    <div class="days-grid" id="calendarDays">
+      <!-- Days will be generated by JavaScript -->
+    </div>
+  </div>
+  
+  <div class="instagram-grid-view" id="gridView">
+    <div class="grid-preview-header">
+      <h3>Instagram Feed Preview</h3>
+      <p>See how your first 9 posts will look on your Instagram profile</p>
+    </div>
+    
+    <div class="instagram-grid-container">
+      <div class="instagram-grid" id="instagramGrid">
+        {% for post in posts[:9] %}
+        <div class="grid-post" onclick="editPost({{ post.id }})">
+          {% if post.image_url %}
+          <img src="{{ post.image_url }}" alt="{{ post.hook }}">
+          <div class="grid-post-overlay">
+            {{ post.hook }}
+          </div>
+          {% else %}
+          <div style="width: 100%; height: 100%; background: #e0e0e0; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-image" style="font-size: 48px; color: #999;"></i>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Post Edit Modal -->
+<sl-dialog id="editPostModal" label="Edit Post" style="--width: 900px;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <!-- Left: Image Preview -->
+    <div>
+      <div id="modalImageContainer" style="width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+        <img id="modalImage" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+        <i class="fas fa-image" id="modalImagePlaceholder" style="font-size: 64px; color: #ccc;"></i>
+      </div>
+      <sl-button variant="primary" outline style="width: 100%; margin-top: 12px;" id="regenerateImageBtn">
+        <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+        Regenerate Image
+      </sl-button>
+    </div>
+    
+    <!-- Right: Editable Fields -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <sl-input id="editHook" label="Hook" size="medium" help-text="Eye-catching text overlay on image"></sl-input>
+      
+      <sl-textarea id="editImageIdea" label="Image Description" rows="2" resize="auto" help-text="What should the image show? Edit and click Regenerate"></sl-textarea>
+      
+      <sl-textarea id="editCaption" label="Caption" rows="4" resize="auto" help-text="Main post text"></sl-textarea>
+      
+      <sl-input id="editHashtags" label="Hashtags" size="medium" help-text="Space-separated hashtags"></sl-input>
+      
+      <sl-input id="editCta" label="Call to Action" size="medium" help-text="Ending CTA"></sl-input>
+      
+      <sl-select id="editTheme" label="Theme" size="medium">
+        <sl-option value="value">Value Post</sl-option>
+        <sl-option value="bts">Behind the Scenes</sl-option>
+        <sl-option value="quote">Quote/Excerpt</sl-option>
+        <sl-option value="engagement">Engagement</sl-option>
+        <sl-option value="promo">Promotional</sl-option>
+      </sl-select>
+      
+      <div style="display: flex; gap: 8px; align-items: center; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-top: auto;">
+        <sl-icon name="calendar3"></sl-icon>
+        <div>
+          <div style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600;">Scheduled</div>
+          <div id="editPostDate" style="font-size: 14px; font-weight: 500;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div slot="footer" style="display: flex; gap: 12px; justify-content: space-between;">
+    <sl-button variant="danger" outline id="deletePostBtn">
+      <sl-icon slot="prefix" name="trash"></sl-icon>
+      Delete Post
+    </sl-button>
+    <div style="display: flex; gap: 12px;">
+      {% if campaign.instagram_connected %}
+      <sl-button variant="success" id="publishToInstagramBtn">
+        <sl-icon slot="prefix" name="instagram"></sl-icon>
+        Publish to Instagram
+      </sl-button>
+      {% endif %}
+      <sl-button variant="default" id="cancelEditBtn">Cancel</sl-button>
+      <sl-button variant="primary" id="saveEditBtn">
+        <sl-icon slot="prefix" name="check-lg"></sl-icon>
+        Save Changes
+      </sl-button>
+    </div>
+  </div>
+</sl-dialog>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const posts = {{ posts|tojson|safe }};
+const campaignStartDate = new Date('{{ campaign.start_date.isoformat() }}T00:00:00');
+let currentDate = new Date(campaignStartDate);
+
+console.log('Campaign start date:', '{{ campaign.start_date.isoformat() }}');
+console.log('Parsed as:', currentDate);
+console.log('Month:', currentDate.getMonth(), 'Year:', currentDate.getFullYear());
+
+function generateCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  
+  // Update header
+  document.getElementById('currentMonth').textContent = 
+    currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  // Get first day of month and total days
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay();
+  
+  // Get previous month days to fill
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  
+  const daysGrid = document.getElementById('calendarDays');
+  daysGrid.innerHTML = '';
+  
+  // Previous month days
+  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'day-cell other-month';
+    dayCell.innerHTML = `<div class="day-number">${prevMonthLastDay - i}</div>`;
+    daysGrid.appendChild(dayCell);
+  }
+  
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'day-cell';
+    dayCell.innerHTML = `<div class="day-number">${day}</div>`;
+    
+    // Find posts for this day
+    const dayDate = new Date(year, month, day);
+    const dayPosts = posts.filter(post => {
+      const postDate = new Date(post.post_date);
+      return postDate.getFullYear() === year && 
+             postDate.getMonth() === month && 
+             postDate.getDate() === day;
+    });
+    
+    // Make day cell droppable
+    dayCell.dataset.date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    dayCell.addEventListener('dragover', handleDragOver);
+    dayCell.addEventListener('drop', handleDrop);
+    dayCell.addEventListener('dragleave', handleDragLeave);
+    
+    // Add post cards
+    dayPosts.forEach(post => {
+      const postDate = new Date(post.post_date);
+      const timeStr = postDate.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      
+      const postCard = document.createElement('div');
+      postCard.className = 'post-card-mini';
+      postCard.draggable = true;
+      postCard.dataset.postId = post.id;
+      postCard.dataset.postDate = post.post_date;
+      
+      postCard.addEventListener('dragstart', handleDragStart);
+      postCard.addEventListener('dragend', handleDragEnd);
+      postCard.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editPost(post.id);
+      });
+      
+      postCard.innerHTML = `
+        <div class="post-time">${timeStr}</div>
+        ${post.image_url ? `<img src="${post.image_url}" class="post-thumbnail-mini" alt="Post">` : ''}
+        <div class="post-hook-mini">${post.hook || post.caption.substring(0, 40) + '...'}</div>
+        <div class="instagram-badge"></div>
+      `;
+      dayCell.appendChild(postCard);
+    });
+    
+    daysGrid.appendChild(dayCell);
+  }
+  
+  // Next month days to fill grid
+  const totalCells = Math.ceil((startingDayOfWeek + daysInMonth) / 7) * 7;
+  const remainingCells = totalCells - (startingDayOfWeek + daysInMonth);
+  
+  for (let i = 1; i <= remainingCells; i++) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'day-cell other-month';
+    dayCell.innerHTML = `<div class="day-number">${i}</div>`;
+    daysGrid.appendChild(dayCell);
+  }
+}
+
+function prevMonth() {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  generateCalendar();
+}
+
+function nextMonth() {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  generateCalendar();
+}
+
+function switchView(view) {
+  const calendarView = document.getElementById('calendarView');
+  const gridView = document.getElementById('gridView');
+  const calendarTab = document.getElementById('calendarTab');
+  const gridTab = document.getElementById('gridTab');
+  const monthNav = document.getElementById('monthNav');
+  
+  if (view === 'calendar') {
+    calendarView.style.display = 'block';
+    gridView.classList.remove('active');
+    calendarTab.classList.add('active');
+    gridTab.classList.remove('active');
+    monthNav.style.display = 'flex';
+  } else {
+    calendarView.style.display = 'none';
+    gridView.classList.add('active');
+    calendarTab.classList.remove('active');
+    gridTab.classList.add('active');
+    monthNav.style.display = 'none';
+  }
+}
+
+function goToPreview() {
+  // Store campaign ID and redirect to preview page
+  // For now, alert user - we'll implement full preview navigation next
+  alert('Going back to preview will let you edit posts and regenerate images. Coming soon!');
+}
+
+let currentEditingPost = null;
+
+function editPost(postId) {
+  const post = posts.find(p => p.id == postId);
+  if (!post) {
+    alert('Post not found');
+    return;
+  }
+  
+  currentEditingPost = post;
+  
+  // Populate modal fields
+  document.getElementById('editHook').value = post.hook || '';
+  document.getElementById('editImageIdea').value = post.image_idea || '';
+  document.getElementById('editCaption').value = post.caption || '';
+  document.getElementById('editHashtags').value = post.hashtags || '';
+  document.getElementById('editCta').value = post.cta || '';
+  document.getElementById('editTheme').value = post.theme || 'value';
+  
+  // Format and display post date
+  const postDate = new Date(post.post_date);
+  const dateStr = postDate.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+  document.getElementById('editPostDate').textContent = dateStr;
+  
+  // Display image if available
+  const modalImage = document.getElementById('modalImage');
+  const placeholder = document.getElementById('modalImagePlaceholder');
+  
+  if (post.image_url) {
+    modalImage.src = post.image_url;
+    modalImage.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    modalImage.style.display = 'none';
+    placeholder.style.display = 'block';
+  }
+  
+  // Show modal
+  const modal = document.getElementById('editPostModal');
+  modal.show();
+}
+
+function connectInstagram() {
+  // Redirect to Instagram OAuth flow
+  window.location.href = '/instagram/connect/{{ campaign.id }}';
+}
+
+function disconnectInstagram() {
+  if (!confirm('Disconnect your Instagram account? You can reconnect anytime.')) return;
+  
+  fetch('/instagram/disconnect/{{ campaign.id }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert('Error: ' + (data.error || 'Failed to disconnect'));
+    }
+  })
+  .catch(err => {
+    alert('Error disconnecting Instagram: ' + err.message);
+  });
+}
+
+async function deleteAllPosts() {
+  if (!confirm('⚠️ Delete ALL posts from this campaign?\n\nThis will remove all posts from your database. This action cannot be undone.\n\nNote: This only deletes posts from YOUR database. If you already published posts to Instagram, you must delete them manually from the Instagram app.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/campaign/{{ campaign.id }}/delete-all-posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert(`✓ Successfully deleted ${result.deleted_count} posts from your database.\n\nYou can now regenerate and reschedule new posts.`);
+      window.location.reload();
+    } else {
+      throw new Error(result.error || 'Delete failed');
+    }
+  } catch (error) {
+    console.error('Error deleting posts:', error);
+    alert('❌ Failed to delete posts: ' + error.message);
+  }
+}
+
+// Drag and drop handlers
+let draggedPost = null;
+
+function handleDragStart(e) {
+  draggedPost = e.target;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', e.target.innerHTML);
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('dragging');
+  
+  // Remove all drag-over classes
+  document.querySelectorAll('.drag-over').forEach(el => {
+    el.classList.remove('drag-over');
+  });
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) {
+    e.preventDefault();
+  }
+  
+  e.dataTransfer.dropEffect = 'move';
+  
+  // Add visual feedback
+  const dayCell = e.target.closest('.day-cell');
+  if (dayCell && !dayCell.classList.contains('other-month')) {
+    dayCell.classList.add('drag-over');
+  }
+  
+  return false;
+}
+
+function handleDragLeave(e) {
+  const dayCell = e.target.closest('.day-cell');
+  if (dayCell) {
+    dayCell.classList.remove('drag-over');
+  }
+}
+
+async function handleDrop(e) {
+  if (e.stopPropagation) {
+    e.stopPropagation();
+  }
+  
+  const dayCell = e.target.closest('.day-cell');
+  if (!dayCell || dayCell.classList.contains('other-month')) {
+    return false;
+  }
+  
+  dayCell.classList.remove('drag-over');
+  
+  const newDate = dayCell.dataset.date;
+  const postId = draggedPost.dataset.postId;
+  const oldDate = draggedPost.dataset.postDate;
+  
+  if (!newDate || !postId) {
+    console.error('Missing date or post ID');
+    return false;
+  }
+  
+  // Update post date in database
+  try {
+    const response = await fetch('/update-post-date', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        post_id: postId,
+        new_date: newDate
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update local posts array
+      const post = posts.find(p => p.id == postId);
+      if (post) {
+        // Parse old date to get time
+        const oldDateTime = new Date(oldDate);
+        const timeStr = oldDateTime.toTimeString().split(' ')[0];
+        post.post_date = `${newDate}T${timeStr}`;
+      }
+      
+      // Regenerate calendar to show new position
+      generateCalendar();
+      
+      console.log(`Post ${postId} moved to ${newDate}`);
+    } else {
+      alert('Failed to move post: ' + result.error);
+      generateCalendar(); // Refresh to original state
+    }
+  } catch (error) {
+    console.error('Error updating post date:', error);
+    alert('Failed to move post: ' + error.message);
+    generateCalendar(); // Refresh to original state
+  }
+  
+  return false;
+}
+
+// Modal event listeners
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+  document.getElementById('editPostModal').hide();
+});
+
+document.getElementById('saveEditBtn').addEventListener('click', async () => {
+  if (!currentEditingPost) return;
+  
+  const saveBtn = document.getElementById('saveEditBtn');
+  saveBtn.loading = true;
+  
+  try {
+    const response = await fetch('/update-post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        post_id: currentEditingPost.id,
+        hook: document.getElementById('editHook').value,
+        image_idea: document.getElementById('editImageIdea').value,
+        caption: document.getElementById('editCaption').value,
+        hashtags: document.getElementById('editHashtags').value,
+        cta: document.getElementById('editCta').value,
+        theme: document.getElementById('editTheme').value
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update local post data
+      currentEditingPost.hook = document.getElementById('editHook').value;
+      currentEditingPost.image_idea = document.getElementById('editImageIdea').value;
+      currentEditingPost.caption = document.getElementById('editCaption').value;
+      currentEditingPost.hashtags = document.getElementById('editHashtags').value;
+      currentEditingPost.cta = document.getElementById('editCta').value;
+      currentEditingPost.theme = document.getElementById('editTheme').value;
+      
+      // Regenerate calendar to show updates
+      generateCalendar();
+      
+      // Close modal
+      document.getElementById('editPostModal').hide();
+      
+      // Show success message
+      alert('Post updated successfully!');
+    } else {
+      alert('Failed to save changes: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error saving post:', error);
+    alert('Failed to save changes: ' + error.message);
+  } finally {
+    saveBtn.loading = false;
+  }
+});
+
+document.getElementById('regenerateImageBtn').addEventListener('click', async () => {
+  if (!currentEditingPost) return;
+  
+  const regenBtn = document.getElementById('regenerateImageBtn');
+  regenBtn.loading = true;
+  
+  try {
+    const response = await fetch('/regenerate-post-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        post_id: currentEditingPost.id,
+        campaign_id: {{ campaign.id }},
+        image_idea: document.getElementById('editImageIdea').value,
+        hook: document.getElementById('editHook').value
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.image_url) {
+      // Update image in modal
+      const modalImage = document.getElementById('modalImage');
+      const placeholder = document.getElementById('modalImagePlaceholder');
+      modalImage.src = result.image_url;
+      modalImage.style.display = 'block';
+      placeholder.style.display = 'none';
+      
+      // Update local post data
+      currentEditingPost.image_url = result.image_url;
+      
+      // Regenerate calendar to show new image
+      generateCalendar();
+      
+      alert('Image regenerated successfully!');
+    } else {
+      alert('Failed to regenerate image: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error regenerating image:', error);
+    alert('Failed to regenerate image: ' + error.message);
+  } finally {
+    regenBtn.loading = false;
+  }
+});
+
+// Delete post handler
+document.getElementById('deletePostBtn').addEventListener('click', async () => {
+  if (!currentEditingPost) return;
+  
+  if (!confirm(`Are you sure you want to delete this post?\n\n"${currentEditingPost.hook}"\n\nThis action cannot be undone.`)) {
+    return;
+  }
+  
+  const deleteBtn = document.getElementById('deletePostBtn');
+  deleteBtn.loading = true;
+  
+  try {
+    const response = await fetch('/delete-post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        post_id: currentEditingPost.id
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Remove post from local array
+      const index = posts.findIndex(p => p.id === currentEditingPost.id);
+      if (index > -1) {
+        posts.splice(index, 1);
+      }
+      
+      // Close modal
+      document.getElementById('editPostModal').hide();
+      
+      // Regenerate calendar
+      generateCalendar();
+      
+      alert('Post deleted successfully!');
+    } else {
+      alert('Failed to delete post: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    alert('Failed to delete post: ' + error.message);
+  } finally {
+    deleteBtn.loading = false;
+  }
+});
+
+// Publish to Instagram handler
+const publishBtn = document.getElementById('publishToInstagramBtn');
+if (publishBtn) {
+  publishBtn.addEventListener('click', async () => {
+    if (!currentEditingPost) return;
+    
+    if (!confirm(`Publish this post to Instagram now?\n\n"${currentEditingPost.hook}"\n\nThis will create a new post on your Instagram Business account.`)) {
+      return;
+    }
+    
+    publishBtn.loading = true;
+    
+    try {
+      const response = await fetch('/instagram/publish-post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          post_id: currentEditingPost.id,
+          campaign_id: {{ campaign.id }}
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Post published to Instagram successfully! 🎉\n\nPermalink: ' + result.permalink);
+        
+        // Update post status to published
+        currentEditingPost.status = 'published';
+        
+        // Close modal
+        document.getElementById('editPostModal').hide();
+        
+        // Refresh calendar
+        generateCalendar();
+      } else {
+        alert('Failed to publish to Instagram: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error publishing to Instagram:', error);
+      alert('Failed to publish to Instagram: ' + error.message);
+    } finally {
+      publishBtn.loading = false;
+    }
+  });
+}
+
+// Generate calendar on load
+generateCalendar();
+</script>
+{% endblock %}

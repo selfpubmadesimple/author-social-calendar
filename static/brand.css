@@ -1,0 +1,316 @@
+/* Clean Apple-inspired design with generous white space */
+:root {
+  --brand-primary: #007AFF;        /* iOS blue */
+  --brand-secondary: #5856D6;      /* iOS purple */
+  --brand-accent: #FF9F0A;         /* iOS orange */
+  --brand-success: #34C759;        /* iOS green */
+  --brand-bg: #FFFFFF;             /* Pure white */
+  --brand-surface: #F2F2F7;        /* iOS gray */
+  --brand-text: #1C1C1E;          /* iOS black */
+  --brand-text-secondary: #8E8E93; /* iOS gray */
+  --brand-border: #D1D1D6;        /* iOS separator */
+  --radius: 12px;
+  --radius-large: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-large: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+/* Map to Shoelace tokens */
+:root, sl-theme {
+  --sl-color-primary-600: var(--brand-primary);
+  --sl-color-primary-700: color-mix(in srgb, var(--brand-primary), black 10%);
+  --sl-color-neutral-0: var(--brand-bg);
+  --sl-color-neutral-50: var(--brand-surface);
+  --sl-color-neutral-700: var(--brand-text-secondary);
+  --sl-color-neutral-900: var(--brand-text);
+  --sl-input-border-radius-medium: var(--radius);
+  --sl-button-border-radius-medium: var(--radius);
+  --sl-panel-border-radius-medium: var(--radius-large);
+  --sl-shadow-small: var(--shadow);
+  --sl-shadow-medium: var(--shadow-large);
+}
+
+* { 
+  box-sizing: border-box; 
+}
+
+body { 
+  background: var(--brand-bg); 
+  color: var(--brand-text); 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+.container { 
+  max-width: 1024px; 
+  margin: 0 auto; 
+  padding: 0 24px; 
+}
+
+/* Header */
+.topbar { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 20px 0; 
+  border-bottom: 1px solid var(--brand-border);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand { 
+  font-weight: 600; 
+  font-size: 18px;
+  letter-spacing: -0.02em; 
+  color: var(--brand-text);
+}
+
+.nav { 
+  display: flex; 
+  gap: 32px; 
+}
+
+.navlink { 
+  text-decoration: none; 
+  color: var(--brand-text-secondary); 
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.navlink:hover { 
+  color: var(--brand-primary); 
+}
+
+/* Hero section */
+.hero {
+  padding: 64px 0;
+  text-align: center;
+  background: linear-gradient(135deg, 
+    rgba(0, 122, 255, 0.05) 0%, 
+    rgba(88, 86, 214, 0.05) 100%);
+}
+
+.hero h1 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 16px 0;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 20px;
+  color: var(--brand-text-secondary);
+  margin: 0 0 32px 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Content area */
+.content { 
+  padding: 48px 0; 
+}
+
+/* Cards */
+sl-card {
+  --border-radius: var(--radius-large);
+  --border-color: var(--brand-border);
+  box-shadow: var(--shadow-large);
+  margin-bottom: 32px;
+}
+
+sl-card::part(base) {
+  padding: 32px;
+}
+
+/* Forms */
+.form-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.form-grid { 
+  display: grid; 
+  gap: 24px; 
+}
+
+.form-grid-2 { 
+  grid-template-columns: 1fr 1fr; 
+}
+
+@media (max-width: 768px) { 
+  .form-grid-2 { 
+    grid-template-columns: 1fr; 
+  }
+}
+
+/* Form controls spacing */
+sl-input, sl-select, sl-textarea {
+  margin-bottom: 4px;
+}
+
+sl-input::part(form-control-label),
+sl-select::part(form-control-label),
+sl-textarea::part(form-control-label) {
+  font-weight: 500;
+  color: var(--brand-text);
+  margin-bottom: 8px;
+}
+
+/* Buttons */
+sl-button {
+  font-weight: 500;
+}
+
+sl-button[variant="primary"] {
+  --sl-color-primary-600: var(--brand-primary);
+}
+
+sl-button[size="large"] {
+  --sl-button-font-size-large: 18px;
+  padding: 16px 32px;
+}
+
+/* Table */
+.table-container {
+  background: var(--brand-bg);
+  border-radius: var(--radius-large);
+  border: 1px solid var(--brand-border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.table-scroll {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  background: var(--brand-bg);
+}
+
+.table th { 
+  background: var(--brand-surface);
+  padding: 16px 12px; 
+  text-align: left; 
+  color: var(--brand-text); 
+  font-weight: 600; 
+  font-size: 14px;
+  border-bottom: 1px solid var(--brand-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table td { 
+  padding: 12px; 
+  border-bottom: 1px solid var(--brand-border); 
+  vertical-align: top; 
+}
+
+.table tr:hover {
+  background: rgba(0, 122, 255, 0.02);
+}
+
+/* Table inputs */
+.table sl-input,
+.table sl-textarea {
+  --sl-input-border-color: transparent;
+  --sl-input-border-color-hover: var(--brand-border);
+  --sl-input-border-color-focus: var(--brand-primary);
+}
+
+.table sl-input[readonly] {
+  --sl-input-background-color: var(--brand-surface);
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex; 
+  gap: 12px; 
+  margin-top: 32px;
+  justify-content: center;
+}
+
+/* Loading states */
+.loading-container {
+  padding: 32px;
+  text-align: center;
+  background: var(--brand-surface);
+  border-radius: var(--radius-large);
+  margin-top: 24px;
+}
+
+.loading-container sl-spinner {
+  --indicator-color: var(--brand-primary);
+  margin-right: 12px;
+}
+
+/* Footer */
+.footer { 
+  margin: 64px 0 32px; 
+  color: var(--brand-text-secondary); 
+  text-align: center;
+  border-top: 1px solid var(--brand-border); 
+  padding-top: 32px; 
+  font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .hero {
+    padding: 48px 0;
+  }
+  
+  .hero h1 {
+    font-size: 36px;
+  }
+  
+  .hero p {
+    font-size: 18px;
+  }
+  
+  .content {
+    padding: 32px 0;
+  }
+  
+  sl-card::part(base) {
+    padding: 24px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .nav {
+    gap: 24px;
+  }
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Focus styles */
+sl-input:focus-within,
+sl-textarea:focus-within,
+sl-select:focus-within {
+  --sl-input-border-color: var(--brand-primary);
+  --sl-input-border-color-focus: var(--brand-primary);
+}

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.pythonlibs/
+venv/
+env/
+
+# Replit
+.replit.nix
+.upm/
+uv.lock
+.local/
+
+# Uploads and generated images
+static/uploads/
+static/images/
+
+# Environment and secrets
+.env
+*.key
+google_service_account.json
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

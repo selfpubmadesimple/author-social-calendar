@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Author Social Calendar{% endblock %}</title>
+
+    <!-- Shoelace (web components; Apple-clean look) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace.js"></script>
+
+    <!-- Brand + layout -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='brand.css') }}">
+  </head>
+  <body>
+    <sl-theme name="light">
+      <header class="topbar">
+        <div class="container">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div class="brand">Self‑Publishing Made Simple™</div>
+            <nav class="nav">
+              {% block nav %}{% endblock %}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="container">
+            <h1>{% block hero_title %}Create Your 30‑Day Social Calendar{% endblock %}</h1>
+            <p>{% block hero_sub %}Generate kidlit‑friendly content for families, educators, librarians, and authors.{% endblock %}</p>
+            {% block hero_actions %}{% endblock %}
+          </div>
+        </section>
+
+        <section class="content">
+          <div class="container">
+            {% block content %}{% endblock %}
+          </div>
+        </section>
+
+        <footer class="footer">
+          <div class="container">
+            <small>&copy; 2025 Self‑Publishing Made Simple</small>
+          </div>
+        </footer>
+      </main>
+    </sl-theme>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

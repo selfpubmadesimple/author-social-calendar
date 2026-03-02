@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+{% block hero_title %}Preview & Export{% endblock %}
+{% block hero_sub %}Edit anything inline, then download Excel or CSV.{% endblock %}
+
+{% block content %}
+{% if campaign_id %}
+<!-- Navigation Tabs -->
+<div style="margin-bottom: 24px;">
+  <sl-tab-group>
+    <sl-tab slot="nav" panel="preview" active>
+      <sl-icon name="table" slot="prefix"></sl-icon>
+      Preview & Export
+    </sl-tab>
+    <sl-tab slot="nav" panel="planner">
+      <sl-icon name="calendar3" slot="prefix"></sl-icon>
+      Content Planner
+    </sl-tab>
+
+    <sl-tab-panel name="preview" active>
+      <p style="color: var(--brand-text-secondary); margin-bottom: 20px;">
+        Campaign: <strong>{{ campaign_name }}</strong>
+      </p>
+    </sl-tab-panel>
+  </sl-tab-group>
+</div>
+
+<script>
+// Handle tab navigation
+document.querySelector('sl-tab[panel="planner"]').addEventListener('click', () => {
+  window.location.href = '/planner/{{ campaign_id }}';
+});
+</script>
+{% endif %}
+<sl-card>
+  <!-- Progress Indicator for Batch Generation -->
+  <div id="batchProgress" style="display: none; margin-bottom: 24px; padding: 20px; background: var(--sl-color-neutral-50); border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; color: var(--brand-text-primary);">Generating Images...</h3>
+      <span id="progressText" style="font-weight: 600; color: var(--brand-accent);">0 / 30</span>
+    </div>
+    <sl-progress-bar id="progressBar" value="0" style="--height: 24px; --indicator-color: var(--brand-accent);"></sl-progress-bar>
+    <div style="margin-top: 8px; color: var(--brand-text-secondary); font-size: 0.9em;" id="progressStatus">
+      Starting batch generation...
+    </div>
+  </div>
+
+  <form method="post" action="/export-excel" id="previewForm">
+    <input type="hidden" name="rows_count" value="{{ rows|length }}">
+    <div class="table-container">
+      <div class="table-scroll">
+        <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Hook</th><th>Caption</th><th>Hashtags</th><th>Image Idea</th><th>Image Preview</th><th>Theme</th><th>CTA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td><sl-input name="date_{{ loop.index0 }}" value="{{ r['Date'] }}" type="date" size="small"></sl-input></td>
+            <td><sl-input name="hook_{{ loop.index0 }}" value="{{ r['Hook'] }}" size="small"></sl-input></td>
+            <td><sl-textarea name="caption_{{ loop.index0 }}" value="{{ r['Caption'] }}" rows="3" resize="vertical" size="small"></sl-textarea></td>
+            <td><sl-input name="hashtags_{{ loop.index0 }}" value="{{ r['Hashtags'] }}" size="small"></sl-input></td>
+            <td>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <sl-input name="image_{{ loop.index0 }}" value="{{ r['Image Idea'] }}" size="small" style="flex: 1;"></sl-input>
+                <input type="hidden" name="image_url_{{ loop.index0 }}" id="imageUrl_{{ loop.index0 }}" value="">
+                <sl-button size="small" variant="default" onclick="generateImage({{ loop.index0 }})" id="generateBtn_{{ loop.index0 }}">
+                  <sl-icon name="image" slot="prefix"></sl-icon>
+                  Generate
+                </sl-button>
+              </div>
+            </td>
+            <td id="imagePreview_{{ loop.index0 }}" style="text-align: center;">
+              <img 
+                style="max-width: 120px; max-height: 120px; border-radius: 8px; cursor: pointer; transition: transform 0.2s; display: none;" 
+                id="generatedImage_{{ loop.index0 }}" 
+                onclick="showImageModal({{ loop.index0 }})"
+                onmouseover="this.style.transform='scale(1.05)'"
+                onmouseout="this.style.transform='scale(1)'"
+                title="Click to view full size"
+              />
+              <div id="imageStatus_{{ loop.index0 }}" style="color: var(--brand-text-secondary); font-size: 0.85em;">
+                Not generated
+              </div>
+              <div style="margin-top: 8px;">
+                <input 
+                  type="file" 
+                  id="fileInput_{{ loop.index0 }}" 
+                  accept="image/*" 
+                  style="display: none;" 
+                  onchange="uploadCustomImage({{ loop.index0 }}, this.files[0])"
+                />
+                <sl-button size="small" variant="default" onclick="document.getElementById('fileInput_{{ loop.index0 }}').click()">
+                  <sl-icon slot="prefix" name="cloud-upload"></sl-icon>
+                  Upload
+                </sl-button>
+              </div>
+            </td>
+            <td><sl-input name="theme_{{ loop.index0 }}" value="{{ r['Theme'] }}" size="small" readonly style="background: #f8f9fa;"></sl-input></td>
+            <td><sl-input name="cta_{{ loop.index0 }}" value="{{ r['CTA'] }}" size="small"></sl-input></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <sl-button variant="success" type="button" size="large" onclick="generateAllImages()">
+        <sl-icon slot="prefix" name="images"></sl-icon>
+        Generate All Images
+      </sl-button>
+      <sl-button variant="primary" type="button" size="large" onclick="saveToPlanner()">
+        <sl-icon slot="prefix" name="calendar-check"></sl-icon>
+        Open Content Planner
+      </sl-button>
+      <sl-button variant="default" type="submit" formaction="/export-excel" size="large">
+        <sl-icon slot="prefix" name="file-earmark-spreadsheet"></sl-icon>
+        Export
+      </sl-button>
+      <sl-button variant="default" type="submit" formaction="/download-csv" size="large">
+        <sl-icon slot="prefix" name="file-earmark-text"></sl-input>
+        Download CSV
+      </sl-button>
+      <sl-button variant="default" type="submit" formaction="/download-canva" size="large">
+        <sl-icon slot="prefix" name="palette"></sl-icon>
+        Canva Bulk Create
+      </sl-button>
+      <sl-button variant="default" type="submit" formaction="/download-images-zip" size="large">
+        <sl-icon slot="prefix" name="file-earmark-zip"></sl-icon>
+        Download Images ZIP
+      </sl-button>
+    </div>
+  </form>
+</sl-card>
+
+<!-- Image Zoom Modal -->
+<sl-dialog id="imageModal" label="Generated Image" style="--width: 90vw; --body-spacing: 0;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+    <img id="modalImage" style="max-width: 100%; max-height: 70vh; border-radius: 8px;" />
+    <div id="modalImageIdea" style="color: var(--brand-text-secondary); text-align: center; padding: 0 16px;"></div>
+  </div>
+  <div slot="footer" style="display: flex; gap: 12px; justify-content: center;">
+    <sl-button variant="default" onclick="regenerateFromModal()">
+      <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+      Regenerate This Image
+    </sl-button>
+    <sl-button variant="primary" onclick="closeImageModal()">
+      <sl-icon slot="prefix" name="check-circle"></sl-icon>
+      Keep This Image
+    </sl-button>
+  </div>
+</sl-dialog>
+
+
+<!-- Hidden form for CSV download -->
+<form method="post" action="/download-csv" style="display: none;" id="csvForm">
+  <input type="hidden" name="rows_count" value="{{ rows|length }}">
+  {% for r in rows %}
+    <input type="hidden" name="date_{{ loop.index0 }}" value="{{ r['Date'] }}">
+    <input type="hidden" name="hook_{{ loop.index0 }}" value="{{ r['Hook'] }}">
+    <input type="hidden" name="caption_{{ loop.index0 }}" value="{{ r['Caption'] }}">
+    <input type="hidden" name="hashtags_{{ loop.index0 }}" value="{{ r['Hashtags'] }}">
+    <input type="hidden" name="image_{{ loop.index0 }}" value="{{ r['Image Idea'] }}">
+    <input type="hidden" name="theme_{{ loop.index0 }}" value="{{ r['Theme'] }}">
+    <input type="hidden" name="cta_{{ loop.index0 }}" value="{{ r['CTA'] }}">
+  {% endfor %}
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Update CSV form when main form changes
+  document.getElementById('previewForm').addEventListener('input', function(e) {
+    const csvForm = document.getElementById('csvForm');
+    const mainFormData = new FormData(this);
+    
+    // Update corresponding hidden inputs in CSV form
+    for (let [name, value] of mainFormData.entries()) {
+      const csvInput = csvForm.querySelector(`input[name="${name}"]`);
+      if (csvInput) {
+        csvInput.value = value;
+      }
+    }
+  });
+
+  // Image generation functionality
+  async function generateImage(index) {
+    const imageInput = document.querySelector(`sl-input[name="image_${index}"]`);
+    const themeInput = document.querySelector(`sl-input[name="theme_${index}"]`);
+    const hookInput = document.querySelector(`sl-input[name="hook_${index}"]`);
+    const generateBtn = document.getElementById(`generateBtn_${index}`);
+    const imagePreview = document.getElementById(`imagePreview_${index}`);
+    const generatedImage = document.getElementById(`generatedImage_${index}`);
+    
+    const imageIdea = imageInput.value.trim();
+    if (!imageIdea) {
+      alert('Please enter an image idea first!');
+      return;
+    }
+
+    // Show loading state
+    generateBtn.textContent = 'Generating...';
+    generateBtn.disabled = true;
+    generateBtn.variant = 'warning';
+
+    try {
+      const response = await fetch('/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_idea: imageIdea,
+          book_title: '{{ rows[0].get("book_title", "children\'s book") if rows else "children\'s book" }}',
+          theme: themeInput.value,
+          hook: hookInput ? hookInput.value : ''
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Show the generated image
+        generatedImage.src = result.image_url;
+        generatedImage.style.display = 'block';
+        
+        // Hide the status text
+        const imageStatus = document.getElementById(`imageStatus_${index}`);
+        if (imageStatus) {
+          imageStatus.style.display = 'none';
+        }
+        
+        // Store the image URL in hidden field for export
+        const imageUrlInput = document.getElementById(`imageUrl_${index}`);
+        if (imageUrlInput) {
+          imageUrlInput.value = result.image_url;
+        }
+        
+        // Update button to success state
+        generateBtn.innerHTML = '<sl-icon name="check-circle" slot="prefix"></sl-icon>Generated';
+        generateBtn.variant = 'success';
+        
+        console.log('Image generated successfully:', result);
+      } else {
+        throw new Error(result.error || 'Image generation failed');
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Failed to generate image: ' + error.message);
+      
+      // Reset button to error state
+      generateBtn.innerHTML = '<sl-icon name="exclamation-triangle" slot="prefix"></sl-icon>Error';
+      generateBtn.variant = 'danger';
+    } finally {
+      generateBtn.disabled = false;
+      
+      // Reset button after 3 seconds
+      setTimeout(() => {
+        generateBtn.innerHTML = '<sl-icon name="image" slot="prefix"></sl-icon>Generate';
+        generateBtn.variant = 'default';
+      }, 3000);
+    }
+  }
+
+  // Bulk image generation functionality - generates images in batches of 5 to avoid timeout
+  async function generateAllImages() {
+    const totalPosts = {{ rows|length }};
+    const BATCH_SIZE = 5;
+    const numBatches = Math.ceil(totalPosts / BATCH_SIZE);
+    
+    const message = `Generate all ${totalPosts} images in ${numBatches} batches?\n\n✓ Batch size: 5 images (~2 minutes per batch)\n✓ Total time: ~${numBatches * 2} minutes\n✓ No timeout issues!\n\nYou'll see progress as each batch completes.`;
+    
+    if (!confirm(message)) {
+      return;
+    }
+
+    // Show progress indicator
+    const batchProgress = document.getElementById('batchProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressStatus = document.getElementById('progressStatus');
+    
+    batchProgress.style.display = 'block';
+    progressBar.value = 0;
+    progressText.textContent = `0 / ${totalPosts}`;
+
+    let totalSuccess = 0;
+    let totalFail = 0;
+
+    // Process in batches of 5
+    for (let batchNum = 0; batchNum < numBatches; batchNum++) {
+      const startIndex = batchNum * BATCH_SIZE;
+      
+      try {
+        console.log(`Starting batch ${batchNum + 1}/${numBatches} (posts ${startIndex}-${startIndex + BATCH_SIZE - 1})...`);
+        progressStatus.textContent = `Generating batch ${batchNum + 1}/${numBatches}... (${startIndex + 1}-${Math.min(startIndex + BATCH_SIZE, totalPosts)} of ${totalPosts})`;
+        
+        const response = await fetch('/generate-batch-images', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            start_index: startIndex,
+            batch_size: BATCH_SIZE
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.results) {
+          // Update UI for each result in the batch
+          data.results.forEach(item => {
+            const result = item.result;
+            const index = item.index;
+            
+            if (result.success) {
+              totalSuccess++;
+              
+              // Update UI with generated image
+              const imagePreview = document.getElementById(`imagePreview_${index}`);
+              const generatedImage = document.getElementById(`generatedImage_${index}`);
+              const generateBtn = document.getElementById(`generateBtn_${index}`);
+              const imageUrlInput = document.getElementById(`imageUrl_${index}`);
+              
+              if (imagePreview && generatedImage && generateBtn) {
+                generatedImage.src = result.image_url;
+                generatedImage.style.display = 'block';
+                generateBtn.innerHTML = '<sl-icon name="check-circle" slot="prefix"></sl-icon>Generated';
+                generateBtn.variant = 'success';
+                
+                // Hide the status text
+                const imageStatus = document.getElementById(`imageStatus_${index}`);
+                if (imageStatus) {
+                  imageStatus.style.display = 'none';
+                }
+              }
+              
+              // Store the image URL in hidden field for export
+              if (imageUrlInput) {
+                imageUrlInput.value = result.image_url;
+              }
+              
+              console.log(`✓ Image ${index + 1} generated successfully`);
+              console.log(`  → Image URL: ${result.image_url}`);
+              console.log(`  → Full result:`, result);
+            } else {
+              totalFail++;
+              console.error(`✗ Image ${index + 1} failed:`, result.error);
+            }
+          });
+          
+          console.log(`✓ Batch ${batchNum + 1}/${numBatches} complete! (Success: ${data.results.filter(r => r.result.success).length}/${data.results.length})`);
+          
+          // Update progress
+          const currentCount = totalSuccess + totalFail;
+          const progressPercent = (currentCount / totalPosts) * 100;
+          progressBar.value = progressPercent;
+          progressText.textContent = `${currentCount} / ${totalPosts}`;
+          progressStatus.textContent = `Batch ${batchNum + 1}/${numBatches} complete (✓ ${totalSuccess} success, ✗ ${totalFail} failed)`;
+        } else {
+          throw new Error(data.error || 'Batch generation failed');
+        }
+        
+      } catch (error) {
+        totalFail += BATCH_SIZE;
+        console.error(`✗ Batch ${batchNum + 1}/${numBatches} error:`, error);
+        alert(`Batch ${batchNum + 1} failed: ${error.message}\n\nContinuing with next batch...`);
+      }
+    }
+    
+    // Hide progress bar and show completion message
+    progressBar.value = 100;
+    progressText.textContent = `${totalPosts} / ${totalPosts}`;
+    progressStatus.textContent = `✅ Complete! (✓ ${totalSuccess} success, ✗ ${totalFail} failed)`;
+    
+    setTimeout(() => {
+      batchProgress.style.display = 'none';
+    }, 3000);
+    
+    alert(`🎉 Image generation complete!\n\n✓ Success: ${totalSuccess}\n✗ Failed: ${totalFail}\n\nTotal: ${totalPosts} images processed`);
+  }
+
+  // Image zoom modal functionality
+  let currentImageIndex = null;
+
+  function showImageModal(index) {
+    const generatedImage = document.getElementById(`generatedImage_${index}`);
+    const imageInput = document.querySelector(`sl-input[name="image_${index}"]`);
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalImageIdea = document.getElementById('modalImageIdea');
+    
+    if (generatedImage && generatedImage.src) {
+      currentImageIndex = index;
+      modalImage.src = generatedImage.src;
+      modalImageIdea.textContent = imageInput ? imageInput.value : '';
+      modal.show();
+    }
+  }
+
+  function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.hide();
+    currentImageIndex = null;
+  }
+
+  async function regenerateFromModal() {
+    if (currentImageIndex === null) return;
+    
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const imageInput = document.querySelector(`sl-input[name="image_${currentImageIndex}"]`);
+    const themeInput = document.querySelector(`sl-input[name="theme_${currentImageIndex}"]`);
+    const hookInput = document.querySelector(`sl-input[name="hook_${currentImageIndex}"]`);
+    
+    const imageIdea = imageInput.value.trim();
+    if (!imageIdea) {
+      alert('Please enter an image idea first!');
+      return;
+    }
+
+    // Show loading state in modal
+    modalImage.style.opacity = '0.5';
+
+    try {
+      const response = await fetch('/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_idea: imageIdea,
+          book_title: '{{ rows[0].get("book_title", "children\'s book") if rows else "children\'s book" }}',
+          theme: themeInput.value,
+          hook: hookInput ? hookInput.value : ''
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update both the modal and the thumbnail
+        const generatedImage = document.getElementById(`generatedImage_${currentImageIndex}`);
+        const imageUrlInput = document.getElementById(`imageUrl_${currentImageIndex}`);
+        const generateBtn = document.getElementById(`generateBtn_${currentImageIndex}`);
+        
+        modalImage.src = result.image_url;
+        generatedImage.src = result.image_url;
+        
+        // Store the image URL
+        if (imageUrlInput) {
+          imageUrlInput.value = result.image_url;
+        }
+        
+        // Update button state
+        if (generateBtn) {
+          generateBtn.innerHTML = '<sl-icon name="check-circle" slot="prefix"></sl-icon>Generated';
+          generateBtn.variant = 'success';
+        }
+        
+        // Reset opacity
+        modalImage.style.opacity = '1';
+        
+        console.log('Image regenerated successfully:', result);
+      } else {
+        throw new Error(result.error || 'Image generation failed');
+      }
+    } catch (error) {
+      console.error('Error regenerating image:', error);
+      alert('Failed to regenerate image: ' + error.message);
+      modalImage.style.opacity = '1';
+    }
+  }
+
+  // Ayrshare scheduling functions
+  async function saveToPlanner() {
+    try {
+      // Get start date and cadence from form data
+      const firstDate = document.querySelector('sl-input[name="date_0"]').value;
+      
+      const response = await fetch('/save-to-planner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          start_date: firstDate,
+          cadence: 'daily'  // TODO: Get from form
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        window.location.href = result.redirect_url;
+      } else {
+        alert('Error saving to planner: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error saving to planner:', error);
+      alert('Failed to save to planner: ' + error.message);
+    }
+  }
+
+  function showScheduleDialog() {
+    const dialog = document.getElementById('scheduleDialog');
+    dialog.show();
+  }
+
+  // Upload custom image to replace AI-generated one
+  async function uploadCustomImage(index, file) {
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (PNG, JPG, GIF, or WebP)');
+      return;
+    }
+    
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+    
+    // Show loading state
+    const imageStatus = document.getElementById(`imageStatus_${index}`);
+    imageStatus.textContent = 'Uploading...';
+    imageStatus.style.color = 'var(--brand-accent)';
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('index', index);
+    
+    try {
+      const response = await fetch('/upload-custom-image', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update image preview
+        const generatedImage = document.getElementById(`generatedImage_${index}`);
+        const imageUrlInput = document.getElementById(`imageUrl_${index}`);
+        const imageStatus = document.getElementById(`imageStatus_${index}`);
+        
+        generatedImage.src = result.image_url;
+        generatedImage.style.display = 'block';
+        imageUrlInput.value = result.image_url;
+        imageStatus.textContent = 'Custom image uploaded ✓';
+        imageStatus.style.color = 'var(--sl-color-success-600)';
+        
+        console.log('Custom image uploaded:', result.image_url);
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      imageStatus.textContent = 'Upload failed';
+      imageStatus.style.color = 'var(--sl-color-danger-600)';
+      alert('Failed to upload image: ' + error.message);
+    }
+  }
+
+  // Open Content Planner - saves posts to database and redirects to planner
+  async function openContentPlanner() {
+    await saveToPlanner();
+  }
+</script>
+{% endblock %}

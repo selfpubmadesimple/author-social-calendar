@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block hero_title %}Create Your 30‑Day Social Calendar{% endblock %}
+{% block hero_sub %}Submit this form and receive 30 days worth of social media content in minutes.{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+  <sl-card>
+    <form method="post" action="/generate" enctype="multipart/form-data" class="form-grid form-grid-2" id="calendarForm">
+      <sl-textarea name="book_title" label="Book Title *" required size="large" rows="2"
+                help-text="Enter your book title and subtitle here separated by a colon"
+                value="{% if recent_form %}{{ recent_form.book_title }}{% endif %}"
+                style="grid-column: 1 / -1;"></sl-textarea>
+      
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; grid-column: 1 / -1;">
+        <sl-input name="age_range" label="Reader Age Range" size="large"
+                  value="{% if recent_form %}{{ recent_form.age_range }}{% endif %}"
+                  placeholder="For Example 4-8"></sl-input>
+
+        <sl-input name="audience" label="Target Audience (gatekeepers) *" required size="large"
+                  value="{% if recent_form %}{{ recent_form.audience }}{% endif %}"
+                  help-text="Who are you trying to reach?"></sl-input>
+      </div>
+
+      <sl-input name="goal" label="Primary Goal This Month" size="large"
+                value="{% if recent_form %}{{ recent_form.goal }}{% endif %}"
+                help-text="Example: Sales, Engagement, Increase Followers"></sl-input>
+
+      <sl-select name="tone" label="Tone" size="large" value="{% if recent_form %}{{ recent_form.tone }}{% else %}Warm{% endif %}"
+                 help-text="The overall feeling of your posts">
+        <sl-option value="Warm">Warm</sl-option>
+        <sl-option value="Fun">Fun</sl-option>
+        <sl-option value="Educational">Educational</sl-option>
+        <sl-option value="Inspiring">Inspiring</sl-option>
+      </sl-select>
+
+      <sl-textarea name="events" label="Events/Promos" rows="3" size="large"
+                  help-text="Upcoming events or promotions to feature"
+                  value="{% if recent_form %}{{ recent_form.events }}{% endif %}"
+                  style="grid-column: 1 / -1;"></sl-textarea>
+
+      <sl-input name="themes" label="Themes to Emphasize" size="large"
+                help-text="Tell us about the theme(s) you want to focus on this month."
+                value="{% if recent_form %}{{ recent_form.themes }}{% endif %}"
+                style="grid-column: 1 / -1;"></sl-input>
+
+      <sl-textarea name="differentiator" label="Unique Angle" size="large" rows="2"
+                help-text="What is special about your book(s)?"
+                value="{% if recent_form %}{{ recent_form.differentiator }}{% endif %}"
+                style="grid-column: 1 / -1;"></sl-textarea>
+
+      <sl-divider style="grid-column: 1 / -1; margin: 8px 0;"></sl-divider>
+      <div style="grid-column: 1 / -1;">
+        <h3 style="margin: 0 0 8px 0; color: var(--brand-primary);">Brand Assets (Optional)</h3>
+        <p style="margin: 0 0 16px 0; color: var(--brand-text-secondary); font-size: 14px;">
+          Upload your book cover, choose brand colors and fonts to personalize your images
+        </p>
+      </div>
+
+      <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Book Cover</label>
+          <input type="file" name="book_cover" accept="image/*" 
+                 style="width: 100%; padding: 8px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg);">
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            PNG or JPG, square format recommended
+          </small>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Author Photo</label>
+          <input type="file" name="author_photo" accept="image/*"
+                 style="width: 100%; padding: 8px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg);">
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            Optional, for behind-the-scenes posts
+          </small>
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div>
+          <label for="primary_color" style="display: block; margin-bottom: 8px; font-weight: 500;">Primary Brand Color</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div id="primary_swatch" style="width: 48px; height: 48px; border-radius: 8px; background: {% if recent_form %}{{ recent_form.primary_color }}{% else %}#FF6B6B{% endif %}; border: 2px solid var(--brand-border); flex-shrink: 0;"></div>
+            <input type="text" id="primary_color" name="primary_color" value="{% if recent_form %}{{ recent_form.primary_color }}{% else %}#FF6B6B{% endif %}"
+                   placeholder="#000000" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7"
+                   style="flex: 1; padding: 12px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg); font-family: monospace; font-size: 14px;">
+          </div>
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            Enter hex code (e.g., #B65B62)
+          </small>
+        </div>
+        
+        <div>
+          <label for="secondary_color" style="display: block; margin-bottom: 8px; font-weight: 500;">Secondary Color</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div id="secondary_swatch" style="width: 48px; height: 48px; border-radius: 8px; background: {% if recent_form %}{{ recent_form.secondary_color }}{% else %}#4ECDC4{% endif %}; border: 2px solid var(--brand-border); flex-shrink: 0;"></div>
+            <input type="text" id="secondary_color" name="secondary_color" value="{% if recent_form %}{{ recent_form.secondary_color }}{% else %}#4ECDC4{% endif %}"
+                   placeholder="#000000" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7"
+                   style="flex: 1; padding: 12px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg); font-family: monospace; font-size: 14px;">
+          </div>
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            Enter hex code (e.g., #F5D4D2)
+          </small>
+        </div>
+
+        <div>
+          <label for="background_color" style="display: block; margin-bottom: 8px; font-weight: 500;">Background Color</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div id="background_swatch" style="width: 48px; height: 48px; border-radius: 8px; background: {% if recent_form %}{{ recent_form.background_color }}{% else %}#F7F7F7{% endif %}; border: 2px solid var(--brand-border); flex-shrink: 0;"></div>
+            <input type="text" id="background_color" name="background_color" value="{% if recent_form %}{{ recent_form.background_color }}{% else %}#F7F7F7{% endif %}"
+                   placeholder="#FFFFFF" pattern="^#[0-9A-Fa-f]{6}$" maxlength="7"
+                   style="flex: 1; padding: 12px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg); font-family: monospace; font-size: 14px;">
+          </div>
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            Enter hex code (e.g., #F7F5F2)
+          </small>
+        </div>
+      </div>
+
+      <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px;">
+        <div>
+          <label for="heading_font" style="display: block; margin-bottom: 8px; font-weight: 500;">Heading Font</label>
+          <input type="text" id="heading_font" name="heading_font" value="{% if recent_form %}{{ recent_form.heading_font }}{% else %}Playfair Display{% endif %}"
+                 placeholder="e.g., Playfair Display, Montserrat"
+                 style="width: 100%; padding: 12px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg);">
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            For hooks and headlines (Google Fonts name)
+          </small>
+        </div>
+        
+        <div>
+          <label for="body_font" style="display: block; margin-bottom: 8px; font-weight: 500;">Body Font</label>
+          <input type="text" id="body_font" name="body_font" value="{% if recent_form %}{{ recent_form.body_font }}{% else %}Open Sans{% endif %}"
+                 placeholder="e.g., Open Sans, Lato, Roboto"
+                 style="width: 100%; padding: 12px; border: 2px solid var(--brand-border); border-radius: 8px; background: var(--brand-bg);">
+          <small style="display: block; margin-top: 4px; color: var(--brand-text-secondary);">
+            For captions and body text (Google Fonts name)
+          </small>
+        </div>
+      </div>
+
+      <sl-textarea name="additional_context" label="Anything Else We Should Consider?" rows="5" size="large"
+                  help-text="Optional: Include details about you, your book, or your marketing approach"
+                  value="{% if recent_form %}{{ recent_form.additional_context }}{% endif %}"
+                  style="grid-column: 1 / -1;"></sl-textarea>
+
+      <sl-input name="start_date" label="Start Date *" type="date" required size="large"
+                value="{% if recent_form %}{{ recent_form.start_date }}{% endif %}"
+                help-text="When should the calendar begin?"></sl-input>
+      
+      <sl-select name="duration" label="Calendar Duration" size="large" value="{% if recent_form %}{{ recent_form.duration }}{% else %}30{% endif %}"
+                 help-text="How many posts to generate">
+        <sl-option value="30">30 posts</sl-option>
+        <sl-option value="60">60 posts</sl-option>
+        <sl-option value="90">90 posts</sl-option>
+      </sl-select>
+
+      <sl-select name="cadence" label="Posting Cadence" size="large" value="{% if recent_form %}{{ recent_form.cadence }}{% else %}daily{% endif %}"
+                 help-text="How often to post">
+        <sl-option value="daily">Daily</sl-option>
+        <sl-option value="weekdays">Weekdays only (Mon-Fri)</sl-option>
+        <sl-option value="3x_week">3 days a week (Mon, Wed, Fri)</sl-option>
+      </sl-select>
+
+      <div style="grid-column: 1 / -1; padding: 16px; background: #fff3cd; border-radius: 8px; border: 2px solid #ffc107;">
+        <sl-checkbox name="test_mode" value="on">
+          <strong>🚀 Test Mode</strong> - Skip AI generation and load sample posts instantly (for testing)
+        </sl-checkbox>
+        <small style="display: block; margin-top: 8px; color: #856404;">
+          Enable this to generate posts in seconds instead of minutes. Perfect for testing workflows and UI.
+        </small>
+      </div>
+
+      <div style="grid-column: 1 / -1; display: flex; justify-content: center; margin-top: 16px;">
+        <sl-button type="submit" variant="primary" size="large" id="generateBtn">
+          <sl-icon slot="prefix" name="stars" id="generateIcon"></sl-icon>
+          <span id="generateText">Generate Calendar</span>
+        </sl-button>
+      </div>
+    
+      <div id="loadingMessage" style="display: none; grid-column: 1 / -1;" class="loading-container">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+          <sl-spinner></sl-spinner>
+          <div>
+            <strong>Creating your personalized content...</strong><br>
+            <small style="color: var(--brand-text-secondary);">This takes 10-15 seconds. We're using smart template-based generation for reliability.</small>
+          </div>
+        </div>
+      </div>
+    </form>
+  </sl-card>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set default start date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDateInput = document.querySelector('sl-input[name="start_date"]');
+        if (!startDateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+        }
+        
+        // Update color swatches when hex codes are entered
+        function updateColorSwatch(inputId, swatchId) {
+            const input = document.getElementById(inputId);
+            const swatch = document.getElementById(swatchId);
+            
+            input.addEventListener('input', function() {
+                let value = this.value.trim().toUpperCase();
+                
+                // Auto-add # if missing
+                if (value && !value.startsWith('#')) {
+                    value = '#' + value;
+                    this.value = value;
+                }
+                
+                // Validate hex format
+                const hexPattern = /^#[0-9A-F]{6}$/;
+                if (hexPattern.test(value)) {
+                    swatch.style.background = value;
+                    this.style.borderColor = 'var(--brand-border)';
+                } else if (value.length > 0) {
+                    // Invalid format, show border hint
+                    this.style.borderColor = '#FF6B6B';
+                }
+            });
+        }
+        
+        // Wire up all color inputs
+        updateColorSwatch('primary_color', 'primary_swatch');
+        updateColorSwatch('secondary_color', 'secondary_swatch');
+        updateColorSwatch('background_color', 'background_swatch');
+    });
+
+    // Add loading indicator when form is submitted
+    document.getElementById('calendarForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('generateBtn');
+        const icon = document.getElementById('generateIcon');
+        const text = document.getElementById('generateText');
+        const loading = document.getElementById('loadingMessage');
+        
+        // Change button to loading state
+        btn.disabled = true;
+        btn.variant = 'warning';
+        icon.name = 'arrow-clockwise';
+        text.textContent = 'Generating your calendar...';
+        
+        // Show loading message
+        loading.style.display = 'block';
+    });
+</script>
+{% endblock %}
